@@ -1,6 +1,7 @@
 import statistics
 # from llmsearch.utils import LLMBundle
 from typing import List, Tuple
+import tiktoken
 
 import torch
 from loguru import logger
@@ -182,9 +183,12 @@ def get_relevant_documents(
 
     len_ = 0
 
+    enc = tiktoken.get_encoding("o200k_base")
+
     for doc in docs:
-        doc_length = len(doc.page_content)
+        doc_length = len(enc.encode(doc.page_content))
         if len_ + doc_length < config.max_char_size - offset_max_chars:
+            print(f"doc:\n{doc}")
             most_relevant_docs.append(doc)
             len_ += doc_length
 

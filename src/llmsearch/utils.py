@@ -72,9 +72,19 @@ def get_llm_bundle(config: Config) -> LLMBundle:
     """
 
     set_cache_folder(str(config.cache_folder))
-    llm = get_llm(config.llm.params)  # type: ignore
-    # chain = load_qa_chain(llm=llm.model, chain_type=CHAIN_TYPE, prompt=llm.prompt)
-    chain = create_stuff_documents_chain(llm=llm.model, prompt=llm.prompt)
+    if config.llm:
+        llm = get_llm(config.llm.params)  # type: ignore
+        # chain = load_qa_chain(llm=llm.model, chain_type=CHAIN_TYPE, prompt=llm.prompt)
+        chain = create_stuff_documents_chain(llm=llm.model, prompt=llm.prompt)
+        hyde_chain = get_hyde_chain(config, llm.model)
+        multiquery_chain = get_multiquery_chain(config, llm.model)
+        history_contextualization_chain = get_history_contextualize_chain(config, llm.model)
+    else:
+        chain = None
+        hyde_chain = None
+        multiquery_chain = None
+        history_contextualization_chain = None
+
 
     store = VectorStoreChroma(
         persist_folder=str(config.embeddings.embeddings_path), config=config
@@ -103,10 +113,6 @@ def get_llm_bundle(config: Config) -> LLMBundle:
         logger.info("Initialized persistence db.")
     else:
         db_settings = None
-
-    hyde_chain = get_hyde_chain(config, llm.model)
-    multiquery_chain = get_multiquery_chain(config, llm.model)
-    history_contextualization_chain = get_history_contextualize_chain(config, llm.model)
 
     return LLMBundle(
         chain=chain,

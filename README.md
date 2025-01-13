@@ -66,3 +66,13 @@ The purpose of this package is to offer a convenient question-answering (RAG) sy
 ## Documentation
 
 [Browse Documentation](https://llm-search.readthedocs.io/en/latest/)
+
+```
+llmsearch index create -c config.yaml
+FASTAPI_LLM_CONFIG=/path/to/config.yaml llmsearchapi
+npx tsx askquestion.ts  "How do I get all of the relationship bits between two Sims?" > output.txt
+upload file to gemeni or use with some other AI to ask questions.
+
+4 optional argument is number of tokens using gpt-4o tokenizer:
+npx tsx askquestion.ts "Question?" 120000
+```

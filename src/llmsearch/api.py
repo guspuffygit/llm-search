@@ -1,5 +1,6 @@
 import os
-from typing import Any, List
+from typing import Any, List, Optional
+import tiktoken
 
 import langchain
 import uvicorn
@@ -10,14 +11,17 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 import llmsearch.database.crud as crud
-from llmsearch.config import Config, ResponseModel, get_config
+from llmsearch.config import Config, ResponseModel, get_config, Document
 from llmsearch.database.config import get_local_session
 from llmsearch.process import get_and_parse_response
 from llmsearch.ranking import get_relevant_documents
 from llmsearch.utils import LLMBundle, get_llm_bundle
 
+
 load_dotenv()
 langchain.debug = True
+
+enc = tiktoken.get_encoding("o200k_base")
 
 # Load the configuration
 def read_config() -> Config:
@@ -52,12 +56,11 @@ def get_db() -> Session:
         db.close()
 
 
-def load_llm() -> LLMBundle:
+def load_llm() -> Optional[LLMBundle]:
     """Loads a chain to use with the api"""
 
     logger.info("Loading LLM...")
-    bundle = get_llm_bundle(config)
-    return bundle
+    return get_llm_bundle(config)
 
 
 config = read_config()
@@ -107,6 +110,24 @@ async def semanticsearch(question: str):
     )
     return {"sources": docs}
 
+@app.get("/semantic/full")
+async def semanticsearch(question: str, max_tokens: str):
+    docs = get_relevant_documents(
+        original_query=question, queries = [question], llm_bundle=llm_bundle, config=config.semantic_search, label=""
+    )
+
+    docs = docs[0]
+
+    for doc in docs:  #type: Document
+        source = doc.metadata['source']
+        with open(source, 'r') as file:
+            file_content = f"passage: \n{file.read()}"
+            token_count = len(enc.encode(file_content))
+            print(f"tokens: {token_count} : {source}")
+            doc.metadata['source_content'] = file_content
+            doc.metadata['token_count'] = token_count
+
+    return {"sources": docs}
 
 @app.get("/labels")
 async def labels() -> List[str]:
